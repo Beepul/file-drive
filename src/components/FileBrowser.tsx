@@ -22,10 +22,10 @@ function PlaceHolder() {
  
 type Props = {
     title: string
-    favorites?: boolean
+    favoritesOnly?: boolean
 }
 
-export default function FileBrowser({title,favorites}: Props) {
+export default function FileBrowser({title,favoritesOnly}: Props) {
 
   const organization = useOrganization()
   const user = useUser()
@@ -38,9 +38,13 @@ export default function FileBrowser({title,favorites}: Props) {
     orgId = organization.organization?.id ?? user.user?.id
   }
 
+  const favorites = useQuery(api.files.getAllFavorites, 
+    orgId ? {orgId} : 'skip'
+  )
+
   const files = useQuery(
     api.files.getFiles, 
-    orgId ? { orgId, query, favorites } : 'skip'
+    orgId ? { orgId, query, favorites: favoritesOnly } : 'skip'
   )
 
   const isLoading = files === undefined
@@ -69,7 +73,7 @@ export default function FileBrowser({title,favorites}: Props) {
                 }
                 <div className="grid lg:grid-cols-3 md:grid-cols-2 grid-cols-1 gap-4">
                   {files?.map((file) => (
-                    <FileCard key={file._id} file={file}/>
+                    <FileCard favorites={favorites} key={file._id} file={file}/>
                   ))}
                 </div>
               </>
