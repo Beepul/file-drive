@@ -33,6 +33,7 @@ import { useMutation } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { useToast } from "./ui/use-toast"
 import Image from "next/image"
+import { Protect } from "@clerk/nextjs"
 
 
 type Props = {
@@ -100,13 +101,18 @@ function FileCardActions({file, isFavorited}: Props) {
                             </>
                         }
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                        onClick={() => setIsConfirmOpen(true)}
-                        className="flex items-center gap-1 text-red-600 cursor-pointer">
-                        <TrashIcon className="w-4 h-4" />
-                        Delete
-                    </DropdownMenuItem>
+                    {/* <Protect
+                        role={'org:admin'}
+                        fallback={<></>}
+                    > */}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                            onClick={() => setIsConfirmOpen(true)}
+                            className="flex items-center gap-1 text-red-600 cursor-pointer">
+                            <TrashIcon className="w-4 h-4" />
+                            Delete
+                        </DropdownMenuItem>
+                    {/* </Protect> */}
                 </DropdownMenuContent>
             </DropdownMenu>
         </>
