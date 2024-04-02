@@ -23,9 +23,10 @@ function PlaceHolder() {
 type Props = {
     title: string
     favoritesOnly?: boolean
+    deleteOnly?: boolean
 }
 
-export default function FileBrowser({title,favoritesOnly}: Props) {
+export default function FileBrowser({title,favoritesOnly, deleteOnly}: Props) {
 
   const organization = useOrganization()
   const user = useUser()
@@ -44,7 +45,7 @@ export default function FileBrowser({title,favoritesOnly}: Props) {
 
   const files = useQuery(
     api.files.getFiles, 
-    orgId ? { orgId, query, favorites: favoritesOnly } : 'skip'
+    orgId ? { orgId, query, favorites: favoritesOnly, deleteOnly } : 'skip'
   )
 
   const isLoading = files === undefined

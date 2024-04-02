@@ -16,7 +16,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
   } from "@/components/ui/dropdown-menu"
-import { Delete, FileTextIcon, GanttChartIcon, ImageIcon, MoreVertical, StarHalf, StarIcon, TrashIcon } from "lucide-react"
+import { Delete, FileIcon, FileTextIcon, GanttChartIcon, ImageIcon, MoreVertical, StarHalf, StarIcon, TrashIcon, UndoIcon } from "lucide-react"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -29,12 +29,13 @@ import {
     AlertDialogTrigger,
   } from "@/components/ui/alert-dialog"
 import { ReactNode, useState } from "react"
-import { useMutation } from "convex/react"
+import { useMutation, useQuery } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { useToast } from "./ui/use-toast"
 import Image from "next/image"
 import { Protect } from "@clerk/nextjs"
-
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
+import { formatRelative } from 'date-fns'
 
 type Props = {
     file: Doc<'files'>
@@ -47,7 +48,9 @@ function FileCardActions({file, isFavorited}: Props) {
     const { toast } = useToast()
 
     const deleteFile = useMutation(api.files.deleteFile)
+    const restoreFile = useMutation(api.files.restoreFile)
     const toggleFavorite = useMutation(api.files.toggleFavorite)
+    
 
     let isFav = false 
 
@@ -61,7 +64,7 @@ function FileCardActions({file, isFavorited}: Props) {
                     <AlertDialogHeader>
                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete your file.
+                        This action will mark the file for our deletion process. Files are deleted periodically.
                     </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -71,8 +74,8 @@ function FileCardActions({file, isFavorited}: Props) {
                             deleteFile({fileId: file._id})
                             toast({
                                 variant: 'default',
-                                title: 'File Deleted',
-                                description: 'Your file has been deleted.'
+                                title: 'File marked for deletion',
+                                description: 'Your file will be deleted soon.'
                             })
                         }}
                     >Continue</AlertDialogAction>
@@ -84,6 +87,13 @@ function FileCardActions({file, isFavorited}: Props) {
                     <MoreVertical />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
+                    <DropdownMenuItem
+                        onClick={() => {
+                            window.open(getFileUrl(file.fileId), '_blank')
+                        }}
+                    >
+                        <FileIcon className="w-4 h-4 mr-1"/> Download
+                    </DropdownMenuItem>
                     <DropdownMenuItem 
                         onClick={() => {
                             toggleFavorite({
@@ -101,18 +111,31 @@ function FileCardActions({file, isFavorited}: Props) {
                             </>
                         }
                     </DropdownMenuItem>
-                    {/* <Protect
+                    
+                    <Protect
                         role={'org:admin'}
                         fallback={<></>}
-                    > */}
+                    >
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
-                            onClick={() => setIsConfirmOpen(true)}
-                            className="flex items-center gap-1 text-red-600 cursor-pointer">
-                            <TrashIcon className="w-4 h-4" />
-                            Delete
+                            onClick={() => {
+                                if(file.shouldDelete){
+                                    restoreFile({
+                                        fileId: file._id
+                                    })
+                                }else {
+                                    setIsConfirmOpen(true)
+                                }
+                            }}
+                            className="flex items-center gap-1  cursor-pointer">
+                            {file.shouldDelete ?  <> <UndoIcon className="w-4 h-4 text-green-600"  /> <span className="text-green-600">Restore</span></> :
+                                <>
+                                    <TrashIcon className="w-4 h-4 text-red-600" />
+                                    <span className="text-red-600">Delete</span>
+                                </>
+                            }
                         </DropdownMenuItem>
-                    {/* </Protect> */}
+                    </Protect>
                 </DropdownMenuContent>
             </DropdownMenu>
         </>
@@ -128,9 +151,9 @@ function getFileUrl(fileId:Id<'_storage'>):string {
 const FileCard = ({file, favorites}: Props) => {
 
     const typeIcons = {
-        'image': <ImageIcon />,
-        'pdf': <FileTextIcon />,
-        'csv': <GanttChartIcon />
+        'image': <ImageIcon className="w-5 h-5" />,
+        'pdf': <FileTextIcon className="w-5 h-5" />,
+        'csv': <GanttChartIcon  className="w-5 h-5"/>
     } as Record<Doc<'files'>['type'], ReactNode>
 
 
@@ -141,10 +164,14 @@ const FileCard = ({file, favorites}: Props) => {
         return favorites.some(favorite => favorite.fileId === fileId)
     }
 
+    const userProfile = useQuery(api.users.getUserProfile, {
+        userId: file.userId
+    })
+
   return (
     <Card>
         <CardHeader className="relative">
-            <CardTitle className="flex gap-2"><p>{typeIcons[file.type]}</p>{file.name} </CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base font-normal capitalize"><p>{typeIcons[file.type]}</p>{file.name} </CardTitle>
             <div className="absolute top-2 right-2"><FileCardActions isFavorited={isFavorited} file={file} /></div>
         </CardHeader>
         <CardContent className="h-[200px] flex items-center justify-center">
@@ -158,10 +185,18 @@ const FileCard = ({file, favorites}: Props) => {
                 file.type === 'pdf' && <FileTextIcon className="w-20 h-20" />
             }
         </CardContent>
-        <CardFooter className="flex justify-center">
-            <Button onClick={() => {
-                window.open(getFileUrl(file.fileId), '_blank')
-            }}>Download</Button>
+        <CardFooter className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs text-gray-700">
+                <Avatar className="w-8 h-8">
+                    <AvatarImage src={userProfile?.image} />
+                    <AvatarFallback>{userProfile?.name}</AvatarFallback>
+                </Avatar>
+                {userProfile?.name}
+            </div>
+            <div className="flex gap-2 text-xs text-gray-700">
+                Uploaded on {formatRelative(new Date(file._creationTime), new Date())}
+            </div>
+            
         </CardFooter>
     </Card>
   )

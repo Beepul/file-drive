@@ -6,7 +6,7 @@ const page = () => {
 
     return(
        <div>
-            <FileBrowser title="Your Favorites" favoritesOnly />
+            <FileBrowser title="Your Favorites" deleteOnly />
        </div>
     )
 }

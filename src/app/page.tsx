@@ -1,6 +1,6 @@
 'use client'
 
-import { useOrganization, useUser } from "@clerk/nextjs";
+import { SignInButton, SignedOut, useOrganization, useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
@@ -61,7 +61,17 @@ export default function Home() {
         </div>
 
         <div className="w-full">
-          {isLoading && (
+          {!user.user && isLoading && (
+            <div className="min-h-[450px] flex flex-col items-center justify-center text-center">
+              <SignedOut>
+                    <SignInButton mode="modal">
+                    <Button>Sign In</Button>
+                    </SignInButton>
+                </SignedOut>
+                <p className="text-2xl mt-4 text-gray-600">Get started by signing in to upload files</p>
+            </div>
+          )}
+          {(isLoading && user.user) && (
             <div className="min-h-[450px] flex flex-col items-center justify-center text-center">
               <Loader2 className="h-24 w-24 animate-spin text-gray-500" />
               <p className="text-2xl mt-4 text-gray-600">Loading...</p>
