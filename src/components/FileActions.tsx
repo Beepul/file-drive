@@ -16,7 +16,7 @@ import {
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
 import { Protect } from "@clerk/nextjs"
-import { useMutation } from "convex/react"
+import { useMutation, useQuery } from "convex/react"
 import { FileIcon, MoreVertical, StarIcon, TrashIcon, UndoIcon } from "lucide-react"
 import { useState } from "react"
 import { api } from "../../convex/_generated/api"
@@ -36,6 +36,7 @@ export function FileCardActions({file, isFavorited}: Props) {
     const deleteFile = useMutation(api.files.deleteFile)
     const restoreFile = useMutation(api.files.restoreFile)
     const toggleFavorite = useMutation(api.files.toggleFavorite)
+    const me = useQuery(api.users.getMe)
     
 
     let isFav = false 
@@ -99,7 +100,11 @@ export function FileCardActions({file, isFavorited}: Props) {
                     </DropdownMenuItem>
                     
                     <Protect
-                        role={'org:admin'}
+                        condition={(check) => {
+                            return check({
+                                role: 'org:admin',
+                            }) || file.userId === me?._id
+                        }}
                         fallback={<></>}
                     >
                         <DropdownMenuSeparator />

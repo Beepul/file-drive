@@ -77,7 +77,8 @@ export const getFiles = query({
         orgId: v.string(),
         query: v.optional(v.string()),
         favorites: v.optional(v.boolean()),
-        deleteOnly: v.optional(v.boolean())
+        deleteOnly: v.optional(v.boolean()),
+        type: v.optional(fileTypes)
     },
     async handler(ctx, args){
 
@@ -112,6 +113,10 @@ export const getFiles = query({
             files = files.filter((file) => !file.shouldDelete)
         }
 
+        if(args.type){
+            files = files.filter((file) => file.type === args.type)
+        }
+
         return files
     }
 })
@@ -138,9 +143,9 @@ export const deleteFile = mutation({
             throw new ConvexError('no access to file')
         }
 
-        const isAdmin = access.user.orgIds.find(org => org.orgId === access.file.orgId)?.role === 'admin'
+        const canDelete = access.file.userId === access.user._id || access.user.orgIds.find(org => org.orgId === access.file.orgId)?.role === 'admin'
 
-        if(!isAdmin){
+        if(!canDelete){
             throw new ConvexError('you have no admin access to delete')
         }
 
@@ -158,9 +163,9 @@ export const restoreFile = mutation({
             throw new ConvexError('no access to file')
         }
 
-        const isAdmin = access.user.orgIds.find(org => org.orgId === access.file.orgId)?.role === 'admin'
+        const canDelete = access.file.userId === access.user._id || access.user.orgIds.find(org => org.orgId === access.file.orgId)?.role === 'admin'
 
-        if(!isAdmin){
+        if(!canDelete){
             throw new ConvexError('you have no admin access to delete')
         }
 
